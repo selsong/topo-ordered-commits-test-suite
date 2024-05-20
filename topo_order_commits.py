@@ -110,12 +110,6 @@ def get_branches(path : str) -> list[(str, str)]:
 
     Returns a list of tupes of branch names and the commit hash
     of the head of the branch.
-    There are two things to look for:
-    Files: File Name is the branch name, contents are the commit it points to
-    Folders: These can contain more branches which you need to inspect
-    Example of branch names and stored location:
-    b1 = file named Branch1 located in the refs/heads folder
-    subBranch/b2 = file named b2 located in the refs/heads/subBranch folder
     """
     branches = []
     refs_path = os.path.join(path, 'refs', 'heads')
@@ -126,22 +120,6 @@ def get_branches(path : str) -> list[(str, str)]:
             commit_hash = get_branch_hash(branch_path)
             branches.append((branch_name, commit_hash))
     return branches
-    # branches = []
-    # #construct path refs/heads
-    # refs_path = os.path.join(path, 'refs', 'heads')
-
-    # for entry in os.listdir(refs_path):
-    #     entry_path = os.path.join(refs_path, entry)
-    #     #if dir recur call
-    #     if os.path.isdir(entry_path):
-    #         branches.extend(get_branches(entry_path))
-    #     #if file get commit
-    #     elif os.path.isfile(entry_path):
-    #         branch_name = os.path.relpath(entry_path, refs_path)
-    #         commit_hash = get_branch_hash(entry_path)
-    #         branches.append((branch_name, commit_hash))
-
-    # return branches
 
 # ============================================================================
 # =================== Part 3: Build the commit graph =========================
@@ -152,23 +130,6 @@ def build_commit_graph(branches_list : list[(str, str)]) -> \
     """
     :type branches_list: list[(str, str)]
     :rtype: dict[str, CommitNode]
-
-    Iterative builds the commit graph from the list of branches and
-    returns a dictionary mapping commit hashes to commit nodes.
-
-    Pick data structure to store the graph (dict) and which nodes have been visited
-    List of hashes to process = branch heads
-    While there are hashes to process
-        Pick a hash and remove from processing list
-        Check if visited before, if you have then can skip processing
-        Check if hash is not in the graph, then need to make a node and store it
-        Retrieve node from graph
-        Retrieve parents for that node from the commit file in .git directory
-        For each parent
-            If parent has not been visited, need to add hash to processing list
-            If parent is not in graph, need to create a parent node and add it to the graph
-            Update children of parent node to include current commit
-
     """
     commit_graph = {}
     visited = set()
@@ -195,11 +156,6 @@ def build_commit_graph(branches_list : list[(str, str)]) -> \
         contents_str = '\n'.join(contents)
         #retrieve parents from commit fit
         parent_hashes = re.findall(r'parent ([0-9a-f]+)', contents_str)
-        
-        # if r:
-        #     #print("r.group(0):", r.group(0))
-        #     parent_hashes = [parent_hash.strip() for parent_hash in r.group(0).split("parent ")[1:]]
-        #     #print(parent_hashes)
 
         for parent_hash in parent_hashes:
             if parent_hash not in visited:
@@ -207,12 +163,9 @@ def build_commit_graph(branches_list : list[(str, str)]) -> \
             if parent_hash not in commit_graph:
                 commit_graph[parent_hash] = CommitNode(parent_hash)
                 #print("parent", parent_hash, commit_graph[parent_hash])
-            #parent_node = commit_graph[parent_hash]
-            #parent_node.add_child(curr_hash)
+            
             commit_graph[parent_hash].add_child(curr_hash)
-            #commit_graph[parent_hash] = parent_node
             curr_node.add_parent(parent_hash)
-            #commit_graph[curr_hash] = curr_node
 
     #print("commit_graph: ")
     #for commit_hash, node in commit_graph.items():
@@ -305,9 +258,15 @@ def ordered_print(
 
     # empty set to keep track of printed commits
     printed_commits = set()
+    newSegment = True
     for i, commit_hash in enumerate(topo_ordered_commits):
-        if commit_hash not in printed_commits:
+        # if commit_hash not in printed_commits:
+        #     print_sticky_start(commit_hash)
+
+        # Determine if a sticky start should be printed
+        if newSegment:
             print_sticky_start(commit_hash)
+            newSegment = False
 
         # Print commit hash
         print(commit_hash, end="")
@@ -320,15 +279,18 @@ def ordered_print(
 
         printed_commits.add(commit_hash)
 
-        parent_hashes = commit_nodes[commit_hash].parents
+        #parent_hashes = commit_nodes[commit_hash].parents
 
         # Determine if a sticky end should be printed
-        next_commit_is_parent = (
-            i + 1 < len(topo_ordered_commits) and topo_ordered_commits[i + 1] in parent_hashes
-        )
+        next_commit_hash = topo_ordered_commits[i + 1] if i + 1 < len(topo_ordered_commits) else None
 
-        if not next_commit_is_parent or i == len(topo_ordered_commits) - 1:
-            print_sticky_end(list(parent_hashes))
+        # if not next_commit_is_parent or i == len(topo_ordered_commits) - 1:
+        #     print_sticky_end(list(parent_hashes))
+         # If the next commit is not a parent of the current commit, print sticky end
+        if next_commit_hash and next_commit_hash not in commit_nodes[commit_hash].parents:
+            print_sticky_end(list(commit_nodes[commit_hash].parents))
+            print()
+            newSegment = True
 
     # # iterate thru topo_ordered_commits list
     # for commit_hash in topo_ordered_commits:
@@ -356,9 +318,6 @@ def ordered_print(
     #         print_sticky_end(parent_hashes)
     #     else:
     #         print("=")
-
-    # empty line at end
-    print()
 
 # ============================================================================
 # ==================== Topologically Order Commits ===========================
