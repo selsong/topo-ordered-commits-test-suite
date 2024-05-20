@@ -1,3 +1,4 @@
+
 # Keep the function signature,
 # but replace its body with your implementation.
 #
@@ -216,8 +217,61 @@ def topo_sort(commit_nodes : dict[str, CommitNode]) -> list[str]:
 # ============================================================================
 # ===================== Part 5: Print the commit hashes ======================
 # ============================================================================
-
 def ordered_print(
+    commit_nodes: dict[str, CommitNode],
+    topo_ordered_commits: list[str],
+    head_to_branches: dict[str, list[str]]
+):
+    printed_commits = set()
+    jump = False
+    for i, commit in enumerate(topo_ordered_commits):
+        curr_node = commit_nodes[commit]
+
+        if commit in printed_commits:
+            continue  # Skip printing duplicate commits
+
+        if jump: #empty line just printed
+            child_hashes = curr_node.children
+            jump = False
+            #print children starting with =
+            print("=", end="") #no whitespace after equal sign
+            if child_hashes:
+                for child in child_hashes:
+                    print(child)
+        print(commit, end="")
+
+        #print branches
+        if commit in head_to_branches:
+            branches = sorted(head_to_branches[commit])
+            print(" " + " ".join(branches), end="")
+        print()
+
+        printed_commits.add(commit)  # Add commit to printed set
+
+        # Check if there is a next commit
+        has_next_commit = i + 1 < len(topo_ordered_commits)
+        if (i+1 == len(topo_ordered_commits)):
+            return
+
+        # Get the next commit hash if it exists
+        if has_next_commit:
+            next_commit_hash = topo_ordered_commits[i + 1]
+        else:
+            next_commit_hash = None
+        
+        parent_hashes = curr_node.parents
+        if next_commit_hash not in parent_hashes:
+            jump = True
+            #print parents of curr commit followed by =
+            
+            if parent_hashes:
+                for parent in parent_hashes:
+                    print(parent, end=" ") #parent hashes sep by whitespace
+            print()
+            print("=") #if no parents just =
+            print() #NL after end=
+
+def ordered_print2(
     commit_nodes : dict[str, CommitNode],
     topo_ordered_commits : list[str],
     head_to_branches : dict[str, list[str]]
@@ -231,7 +285,7 @@ def ordered_print(
     step. Also, handles sticky ends and printing the corresponding branch
     names with each commit.
     """
-    def print_sticky_start(commit_hash: str):
+    def print_sticky_start(commit_hash: str, printed_commits: list[str]):
         """
         Prints the sticky start for the given commit hash. sticky start
         """
@@ -239,16 +293,20 @@ def ordered_print(
         print(f"={commit_hash}", end="")
         if children_hashes:
             print(" " + " ".join(children_hashes), end="") #any order sep by whitespace
+            for i in children_hashes:
+                printed_commits.add(i)
         print()
 
     #insert sticky end - commit hash of parents of curr, = to last hash
-    def print_sticky_end(parent_hashes: list[str]):
+    def print_sticky_end(parent_hashes: list[str], printed_commits: list[str]):
         """
         Prints the sticky end for the given parent hashes.
         """
         print("=", end="") #if no parents just =
         if parent_hashes:
             print(" " + " ".join(parent_hashes), end="")
+            for i in parent_hashes:
+                printed_commits.add(i)
         print()
 
     #if next commit not parent of curr insert sticky end
@@ -258,14 +316,14 @@ def ordered_print(
 
     # empty set to keep track of printed commits
     printed_commits = set()
-    newSegment = True
+    newSegment = False
     for i, commit_hash in enumerate(topo_ordered_commits):
         # if commit_hash not in printed_commits:
-        #     print_sticky_start(commit_hash)
+        #     print_sticky_start(commit_hash, printed_commits)
 
         # Determine if a sticky start should be printed
         if newSegment:
-            print_sticky_start(commit_hash)
+            print_sticky_start(commit_hash, printed_commits)
             newSegment = False
 
         # Print commit hash
@@ -288,7 +346,7 @@ def ordered_print(
         #     print_sticky_end(list(parent_hashes))
          # If the next commit is not a parent of the current commit, print sticky end
         if next_commit_hash and next_commit_hash not in commit_nodes[commit_hash].parents:
-            print_sticky_end(list(commit_nodes[commit_hash].parents))
+            print_sticky_end(list(commit_nodes[commit_hash].parents), printed_commits)
             print()
             newSegment = True
 
@@ -360,4 +418,3 @@ def topo_order_commits():
 
 if __name__ == '__main__':
     topo_order_commits()
-
