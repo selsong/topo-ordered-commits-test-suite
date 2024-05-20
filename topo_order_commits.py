@@ -194,13 +194,12 @@ def build_commit_graph(branches_list : list[(str, str)]) -> \
             continue
         contents_str = '\n'.join(contents)
         #retrieve parents from commit fit
-        r = re.search("parent [0-9a-f]+", contents_str)
-        parent_hashes = []
+        parent_hashes = re.findall(r'parent ([0-9a-f]+)', contents_str)
         
-        if r:
-            #print("r.group(0):", r.group(0))
-            parent_hashes = [parent_hash.strip() for parent_hash in r.group(0).split("parent ")[1:]]
-            #print(parent_hashes)
+        # if r:
+        #     #print("r.group(0):", r.group(0))
+        #     parent_hashes = [parent_hash.strip() for parent_hash in r.group(0).split("parent ")[1:]]
+        #     #print(parent_hashes)
 
         for parent_hash in parent_hashes:
             if parent_hash not in visited:
@@ -233,7 +232,7 @@ def topo_sort(commit_nodes : dict[str, CommitNode]) -> list[str]:
     The topological ordering is represented as a list of commit hashes. See
     the LA Worksheet for some starter code for Khan's algorithm.
     """
-    #init indegree dict
+    #init indegree dict, all nodes 0
     indegree = {commit_hash: 0 for commit_hash in commit_nodes}
 
     #calc num parents/indegree for each commit node
@@ -248,18 +247,18 @@ def topo_sort(commit_nodes : dict[str, CommitNode]) -> list[str]:
     while q:
         commit_hash = q.popleft()
         result.append(commit_hash)
+        #print("append_res: ", result)
         #update indegree
-        for child_hash in commit_nodes[commit_hash].children:
-            indegree[child_hash] -= 1
-            if indegree[child_hash] == 0:
-                q.append(child_hash)
+        for parent_hash in commit_nodes[commit_hash].parents:
+            indegree[parent_hash] -= 1
+            if indegree[parent_hash] == 0:
+                q.append(parent_hash)
 
     if len(result) != len(commit_nodes):
         print("Cycle")
         return []
-    
+    #print("result: ", result)
     return result
-
 
 # ============================================================================
 # ===================== Part 5: Print the commit hashes ======================
@@ -306,33 +305,57 @@ def ordered_print(
 
     # empty set to keep track of printed commits
     printed_commits = set()
-
-    # iterate thru topo_ordered_commits list
-    for commit_hash in topo_ordered_commits:
-        # print sticky start if commit hash has not been printed yet
+    for i, commit_hash in enumerate(topo_ordered_commits):
         if commit_hash not in printed_commits:
             print_sticky_start(commit_hash)
 
-        # print commit hash
-        print(commit_hash, end=" ")
+        # Print commit hash
+        print(commit_hash, end="")
 
-        # print associated branch names
+        # Print associated branch names
         if commit_hash in head_to_branches:
-            #sorted is deterministic
             branches = sorted(head_to_branches[commit_hash])
-            print(" ".join(branches), end=" ")
+            print(" " + " ".join(branches), end="")
+        print()
 
-        # mark commit as printed
         printed_commits.add(commit_hash)
 
-        # get parent hashes of the current commit
         parent_hashes = commit_nodes[commit_hash].parents
 
-        # print sticky end if there are parent hashes
-        if parent_hashes:
-            print_sticky_end(parent_hashes)
-        else:
-            print("=")
+        # Determine if a sticky end should be printed
+        next_commit_is_parent = (
+            i + 1 < len(topo_ordered_commits) and topo_ordered_commits[i + 1] in parent_hashes
+        )
+
+        if not next_commit_is_parent or i == len(topo_ordered_commits) - 1:
+            print_sticky_end(list(parent_hashes))
+
+    # # iterate thru topo_ordered_commits list
+    # for commit_hash in topo_ordered_commits:
+    #     # print sticky start if commit hash has not been printed yet
+    #     if commit_hash not in printed_commits:
+    #         print_sticky_start(commit_hash)
+
+    #     # print commit hash
+    #     print(commit_hash, end=" ")
+
+    #     # print associated branch names
+    #     if commit_hash in head_to_branches:
+    #         #sorted is deterministic
+    #         branches = sorted(head_to_branches[commit_hash])
+    #         print(" ".join(branches), end=" ")
+
+    #     # mark commit as printed
+    #     printed_commits.add(commit_hash)
+
+    #     # get parent hashes of the current commit
+    #     parent_hashes = commit_nodes[commit_hash].parents
+
+    #     # print sticky end if there are parent hashes
+    #     if parent_hashes:
+    #         print_sticky_end(parent_hashes)
+    #     else:
+    #         print("=")
 
     # empty line at end
     print()
