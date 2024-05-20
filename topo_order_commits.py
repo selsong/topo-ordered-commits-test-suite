@@ -217,8 +217,7 @@ def topo_sort(commit_nodes : dict[str, CommitNode]) -> list[str]:
 # ============================================================================
 # ===================== Part 5: Print the commit hashes ======================
 # ============================================================================
-#this one passes 12 test cases
-def ordered_print2(
+def ordered_print(
     commit_nodes: dict[str, CommitNode],
     topo_ordered_commits: list[str],
     head_to_branches: dict[str, list[str]]
@@ -230,25 +229,27 @@ def ordered_print2(
         curr_node = commit_nodes[commit]
     
         if commit in printed_commits:
-            continue  # Skip printing duplicate commits
+            continue #Skip printing duplicate commits
 
         if jump: #empty line just printed
             child_hashes = curr_node.children
             jump = False
             #print children starting with =
-            print("=", end="") #no whitespace after equal sign
+            print("=", sep='', end="") #no whitespace after equal sign
             if (isBranch):
+                #print("branch", isBranch)
                 print()
                 isBranch = False
             if child_hashes:
                 for child in child_hashes:
-                    print(child)
+                    print(child, sep="")
+                    
         print(commit, end="")
 
         #print branches
         if commit in head_to_branches:
             branches = sorted(head_to_branches[commit])
-            print(" " + " ".join(branches), end="")
+            print(" " + " ".join(branches), sep="", end="")
         print()
 
         printed_commits.add(commit)  # Add commit to printed set
@@ -272,12 +273,12 @@ def ordered_print2(
             jump = True
             #print parents of curr commit followed by =
             if parent_hashes:
-                print(" " + " ".join(parent_hashes), end="") #parent hashes sep by whitespace
-            print("=") #if no parents just =
+                print(" ".join(parent_hashes), end="") #parent hashes sep by whitespace
+            print("=", sep='') #if no parents just =
             print() #NL after end=
 
 #this one passes 18 TEST CASES
-def ordered_print(
+def ordered_print2(
     commit_nodes : dict[str, CommitNode],
     topo_ordered_commits : list[str],
     head_to_branches : dict[str, list[str]]
@@ -299,7 +300,6 @@ def ordered_print(
         print(f"={commit_hash}", end="")
         if children_hashes:
             print(" ".join(children_hashes), end="") #any order sep by whitespace
-            
         print()
 
     #insert sticky end - commit hash of parents of curr, = to last hash
